@@ -13,6 +13,7 @@ from diffusers import (
     ControlNetModel,
     StableDiffusionControlNetPipeline,
 )
+from datetime import datetime
 
 # import spaces
 import gradio as gr
@@ -20,6 +21,10 @@ from huggingface_hub import hf_hub_download
 import argparse
 
 from ip_adapter import IPAdapter
+
+# get current date without time
+now = datetime.now().strftime("%Y-%m-%d")
+time = datetime.now().strftime("%H-%M-%S")
 
 parser = argparse.ArgumentParser(description="Run the InstantStyle Gradio Interface")
 parser.add_argument("--inbrowser", action="store_true", help="Open in browser")
@@ -223,9 +228,9 @@ def create_image(
         )
 
     if input_image is not None:
-        input_image = resize_img(input_image, max_side=1024)
+        input_image = resize_img(input_image, max_side=768)
         cv_input_image = pil_to_cv2(input_image)
-        detected_map = cv2.Canny(cv_input_image, 50, 200)
+        detected_map = cv2.Canny(cv_input_image, 50, 200)  #
         canny_map = Image.fromarray(cv2.cvtColor(detected_map, cv2.COLOR_BGR2RGB))
     else:
         canny_map = Image.new("RGB", (512, 512), color=(255, 255, 255))
@@ -263,7 +268,9 @@ def create_image(
             controlnet_conditioning_scale=float(control_scale),
         )
     # Save the image
-    images[0].save(f"{seed}.jpg")
+    if not os.path.exists(f"output/{now}"):
+        os.makedirs(now)
+    images[0].save(f"output/{now}/{seed}{time}.jpg")
     return images
 
 
@@ -346,7 +353,7 @@ with block:
                 )
 
                 scale = gr.Slider(
-                    minimum=0, maximum=2.0, step=0.01, value=2.0, label="Scale"
+                    minimum=0, maximum=5.0, step=0.01, value=5.0, label="Scale"
                 )
 
                 with gr.Accordion(open=False, label="Advanced Options"):
@@ -397,8 +404,8 @@ with block:
                         label="num inference steps",
                     )
                     seed = gr.Slider(
-                        minimum=-1000000,
-                        maximum=1000000,
+                        minimum=-1,
+                        maximum=4294967295,
                         value=1,
                         step=1,
                         label="Seed Value",
